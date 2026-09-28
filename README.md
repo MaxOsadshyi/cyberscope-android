@@ -94,7 +94,13 @@ P(A) = score_A / (score_A + score_B)
 
 Скріншоти
 
-Show Image Show Image Show Image Show Image
+<img width="431" height="882" alt="image" src="https://github.com/user-attachments/assets/a68199b3-cd54-4a84-98b1-24865da30c75" />
+<img width="422" height="877" alt="image" src="https://github.com/user-attachments/assets/17023d36-9f1f-48d0-8d99-509e2d037423" />
+<img width="405" height="882" alt="image" src="https://github.com/user-attachments/assets/b924e724-b7f1-4b91-a17c-803153835a41" />
+<img width="1411" height="285" alt="image" src="https://github.com/user-attachments/assets/5efe9880-44e0-43d6-a8f0-24fe9321370c" />
+
+
+
 
 Безпека
 API keys у коді відсутні
