@@ -152,6 +152,32 @@ fun ResultCard(result: PredictResponse) {
             Text("${result.team_b_name}: ${(result.team_b_win_probability * 100).toInt()}%")
             Spacer(modifier = Modifier.height(8.dp))
             Text(result.explanation, style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Чому такий прогноз?", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Формула: win_rate × 0.6 + rating × 0.4",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "${result.team_a_name}\n" +
+                    "Win rate: ${(result.team_a_win_rate * 100).toInt()}% " +
+                    "(внесок ${result.team_a_win_rate_contribution})\n" +
+                    "Rating: ${result.team_a_rating} " +
+                    "(внесок ${result.team_a_rating_contribution})\n" +
+                    "Підсумковий бал: ${result.team_a_score}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "${result.team_b_name}\n" +
+                    "Win rate: ${(result.team_b_win_rate * 100).toInt()}% " +
+                    "(внесок ${result.team_b_win_rate_contribution})\n" +
+                    "Rating: ${result.team_b_rating} " +
+                    "(внесок ${result.team_b_rating_contribution})\n" +
+                    "Підсумковий бал: ${result.team_b_score}",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

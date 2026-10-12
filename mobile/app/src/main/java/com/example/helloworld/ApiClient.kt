@@ -71,7 +71,17 @@ object ApiClient {
                 team_b_name = json.getString("team_b_name"),
                 team_a_win_probability = json.getDouble("team_a_win_probability"),
                 team_b_win_probability = json.getDouble("team_b_win_probability"),
-                explanation = json.getString("explanation")
+                explanation = json.getString("explanation"),
+                team_a_win_rate = json.getDouble("team_a_win_rate"),
+                team_a_rating = json.getDouble("team_a_rating"),
+                team_a_win_rate_contribution = json.getDouble("team_a_win_rate_contribution"),
+                team_a_rating_contribution = json.getDouble("team_a_rating_contribution"),
+                team_a_score = json.getDouble("team_a_score"),
+                team_b_win_rate = json.getDouble("team_b_win_rate"),
+                team_b_rating = json.getDouble("team_b_rating"),
+                team_b_win_rate_contribution = json.getDouble("team_b_win_rate_contribution"),
+                team_b_rating_contribution = json.getDouble("team_b_rating_contribution"),
+                team_b_score = json.getDouble("team_b_score")
             )
         } else {
             val errorStream = connection.errorStream?.bufferedReader()?.use(BufferedReader::readText)
