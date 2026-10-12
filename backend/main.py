@@ -40,6 +40,65 @@ class PredictResponse(BaseModel):
     team_a_win_probability: float
     team_b_win_probability: float
     explanation: str
+    team_a_win_rate: float
+    team_a_rating: float
+    team_a_win_rate_contribution: float
+    team_a_rating_contribution: float
+    team_a_score: float
+    team_b_win_rate: float
+    team_b_rating: float
+    team_b_win_rate_contribution: float
+    team_b_rating_contribution: float
+    team_b_score: float
+
+
+def calculate_prediction(
+    team_a_name: str,
+    team_a: dict[str, float],
+    team_b_name: str,
+    team_b: dict[str, float],
+) -> PredictResponse:
+    team_a_win_rate_contribution = team_a["win_rate"] * 0.6
+    team_a_rating_contribution = team_a["rating"] * 0.4
+    team_b_win_rate_contribution = team_b["win_rate"] * 0.6
+    team_b_rating_contribution = team_b["rating"] * 0.4
+
+    score_a = team_a_win_rate_contribution + team_a_rating_contribution
+    score_b = team_b_win_rate_contribution + team_b_rating_contribution
+    total = score_a + score_b
+    prob_a = round(score_a / total, 2)
+    prob_b = round(1 - prob_a, 2)
+
+    if prob_a == prob_b:
+        explanation = (
+            "Шанси команд рівні за округленим прогнозом. "
+            "Статистика команд демонстраційна."
+        )
+    else:
+        leader = team_a_name if prob_a > prob_b else team_b_name
+        explanation = (
+            f"{leader} має вищий розрахунковий бал за формулою "
+            "win_rate × 0.6 + rating × 0.4. "
+            "Статистика команд демонстраційна."
+        )
+
+    return PredictResponse(
+        team_a_name=team_a_name,
+        team_b_name=team_b_name,
+        team_a_win_probability=prob_a,
+        team_b_win_probability=prob_b,
+        explanation=explanation,
+        team_a_win_rate=team_a["win_rate"],
+        team_a_rating=team_a["rating"],
+        team_a_win_rate_contribution=round(team_a_win_rate_contribution, 3),
+        team_a_rating_contribution=round(team_a_rating_contribution, 3),
+        team_a_score=round(score_a, 3),
+        team_b_win_rate=team_b["win_rate"],
+        team_b_rating=team_b["rating"],
+        team_b_win_rate_contribution=round(team_b_win_rate_contribution, 3),
+        team_b_rating_contribution=round(team_b_rating_contribution, 3),
+        team_b_score=round(score_b, 3),
+    )
 
 
 @app.get("/health")
@@ -68,21 +127,9 @@ def predict(request: PredictRequest):
     if team_b is None:
         raise HTTPException(status_code=404, detail=f"Команду '{request.team_b_name}' не знайдено")
 
-    # --- Проста AI-функція: вагова формула на основі статистики ---
-    score_a = team_a["win_rate"] * 0.6 + team_a["rating"] * 0.4
-    score_b = team_b["win_rate"] * 0.6 + team_b["rating"] * 0.4
-
-    total = score_a + score_b
-    prob_a = round(score_a / total, 2)
-    prob_b = round(1 - prob_a, 2)
-
-    leader = request.team_a_name if prob_a > prob_b else request.team_b_name
-    explanation = f"{leader} має вищий win rate та рейтинг за останні матчі"
-
-    return PredictResponse(
-        team_a_name=request.team_a_name,
-        team_b_name=request.team_b_name,
-        team_a_win_probability=prob_a,
-        team_b_win_probability=prob_b,
-        explanation=explanation,
+    return calculate_prediction(
+        request.team_a_name,
+        team_a,
+        request.team_b_name,
+        team_b,
     )
