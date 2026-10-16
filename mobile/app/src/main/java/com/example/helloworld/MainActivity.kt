@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.helloworld.ui.theme.HelloWorldTheme
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -148,8 +149,8 @@ fun TeamDropdown(
 fun ResultCard(result: PredictResponse) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("${result.team_a_name}: ${(result.team_a_win_probability * 100).toInt()}%")
-            Text("${result.team_b_name}: ${(result.team_b_win_probability * 100).toInt()}%")
+            Text("${result.team_a_name}: ${(result.team_a_win_probability * 100).roundToInt()}%")
+            Text("${result.team_b_name}: ${(result.team_b_win_probability * 100).roundToInt()}%")
             Spacer(modifier = Modifier.height(8.dp))
             Text(result.explanation, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(12.dp))
@@ -161,7 +162,7 @@ fun ResultCard(result: PredictResponse) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 "${result.team_a_name}\n" +
-                    "Win rate: ${(result.team_a_win_rate * 100).toInt()}% " +
+                    "Win rate: ${(result.team_a_win_rate * 100).roundToInt()}% " +
                     "(внесок ${result.team_a_win_rate_contribution})\n" +
                     "Rating: ${result.team_a_rating} " +
                     "(внесок ${result.team_a_rating_contribution})\n" +
@@ -171,7 +172,7 @@ fun ResultCard(result: PredictResponse) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "${result.team_b_name}\n" +
-                    "Win rate: ${(result.team_b_win_rate * 100).toInt()}% " +
+                    "Win rate: ${(result.team_b_win_rate * 100).roundToInt()}% " +
                     "(внесок ${result.team_b_win_rate_contribution})\n" +
                     "Rating: ${result.team_b_rating} " +
                     "(внесок ${result.team_b_rating_contribution})\n" +
