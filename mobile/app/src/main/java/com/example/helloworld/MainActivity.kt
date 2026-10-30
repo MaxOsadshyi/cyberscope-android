@@ -9,13 +9,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.helloworld.ui.theme.HelloWorldTheme
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,10 +25,39 @@ class MainActivity : ComponentActivity() {
         setContent {
             HelloWorldTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PredictionScreen(modifier = Modifier.padding(innerPadding))
+                    AppRoot(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
+    }
+}
+
+// Екрани застосунку (без бібліотеки навігації)
+sealed class Screen {
+    object Predict : Screen()
+    object History : Screen()
+    data class Details(val item: HistoryItem) : Screen()
+}
+
+@Composable
+fun AppRoot(modifier: Modifier = Modifier) {
+    var screen by remember { mutableStateOf<Screen>(Screen.Predict) }
+
+    when (val current = screen) {
+        is Screen.Predict -> PredictionScreen(
+            modifier = modifier,
+            onOpenHistory = { screen = Screen.History }
+        )
+        is Screen.History -> HistoryScreen(
+            modifier = modifier,
+            onBack = { screen = Screen.Predict },
+            onOpen = { item -> screen = Screen.Details(item) }
+        )
+        is Screen.Details -> DetailsScreen(
+            modifier = modifier,
+            item = current.item,
+            onBack = { screen = Screen.History }
+        )
     }
 }
 
@@ -40,13 +70,17 @@ sealed class UiState {
 }
 
 @Composable
-fun PredictionScreen(modifier: Modifier = Modifier) {
+fun PredictionScreen(
+    modifier: Modifier = Modifier,
+    onOpenHistory: () -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val historyStore = remember { HistoryStore.get(context) }
     var teams by remember { mutableStateOf<List<TeamInfo>>(emptyList()) }
-    var teamA by remember { mutableStateOf<String?>(null) }
-    var teamB by remember { mutableStateOf<String?>(null) }
+    // Вибір команд переживає перехід в історію й назад
+    var teamA by rememberSaveable { mutableStateOf<String?>(null) }
+    var teamB by rememberSaveable { mutableStateOf<String?>(null) }
     var uiState by remember { mutableStateOf<UiState>(UiState.Idle) }
 
     // Завантажуємо список команд один раз при відкритті екрану
@@ -112,6 +146,12 @@ fun PredictionScreen(modifier: Modifier = Modifier) {
             enabled = uiState !is UiState.Loading
         ) {
             Text("Прогнозувати")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(onClick = onOpenHistory) {
+            Text("Історія прогнозів")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
