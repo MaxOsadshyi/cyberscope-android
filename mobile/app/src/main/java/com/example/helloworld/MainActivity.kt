@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.example.helloworld.ui.theme.HelloWorldTheme
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +42,8 @@ sealed class UiState {
 @Composable
 fun PredictionScreen(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val historyStore = remember { HistoryStore.get(context) }
     var teams by remember { mutableStateOf<List<TeamInfo>>(emptyList()) }
     var teamA by remember { mutableStateOf<String?>(null) }
     var teamB by remember { mutableStateOf<String?>(null) }
@@ -93,6 +96,13 @@ fun PredictionScreen(modifier: Modifier = Modifier) {
                 scope.launch {
                     try {
                         val result = ApiClient.predictMatch(a, b)
+                        // Зберігаємо тільки успішний результат. Збій локальної бази не
+                        // має ховати результат, який уже отримано від backend.
+                        try {
+                            historyStore.add(result)
+                        } catch (e: Exception) {
+                            // історія недоступна, прогноз усе одно показуємо
+                        }
                         uiState = UiState.Success(result)
                     } catch (e: Exception) {
                         uiState = UiState.Error(e.message ?: "Невідома помилка")
