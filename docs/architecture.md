@@ -1,107 +1,31 @@
-# Архітектура
+﻿# Архітектура
 
 ## Загальна схема
+Android (Kotlin, Compose, SQLite) ──HTTP/JSON──► FastAPI (backend/main.py)
+├─ app/api/ (routes, Depends, error_handlers)
+├─ app/services/ (PredictionService)
+├─ app/domain/ (models, errors, TeamStatsProvider)
+└─ app/infrastructure/providers/
+├─ InMemoryTeamStatsProvider
+└─ FakeTeamStatsProvider
+## Компоненти Backend (`backend/`)
 
-```
-Телефон / емулятор                                       Комп'ютер
-┌──────────────────────────────┐      HTTP + JSON      ┌──────────────────────────┐
-│ MainActivity.kt (екрани)     │ ────────────────────► │ Uvicorn → FastAPI        │
-│ ApiClient.kt, ApiModels.kt   │ ◄──────────────────── │  main.py                 │
-│ HistoryStore.kt ──► SQLite   │                       │  Pydantic-моделі         │
-│   cyberscope_history.db      │                       │  TEAMS_DB (словник)      │
-└──────────────────────────────┘                       │  calculate_prediction()  │
-        127.0.0.1:8000                                 └──────────────────────────┘
-        └──── adb reverse tcp:8000 tcp:8000 ────┘
-```
+- `main.py` — тонка точка входу (`from app.main import app`).
+- `app/main.py` — фабрика `create_app()`, налаштування CORS, реєстрація обробників помилок і роутера.
+- `app/core/config.py` — `Settings` і `get_settings()` (зчитує `STATS_PROVIDER`, `WEIGHT_WIN_RATE`, `WEIGHT_RATING`, `CORS_ALLOW_ORIGINS`).
+- `app/domain/` — чисті доменні моделі (`TeamStats`, `PredictionWeights`, `TeamBreakdown`, `Prediction`), винятки (`SameTeamsError`, `TeamNotFoundError`, `StatsUnavailableError`) та контракт `TeamStatsProvider` (`Protocol`).
+- `app/services/prediction_service.py` — `PredictionService` (`list_teams`, `check_dependencies`, `predict`). Не залежить від FastAPI чи конкретної реалізації провайдера.
+- `app/infrastructure/providers/` — реалізації `TeamStatsProvider`: `InMemoryTeamStatsProvider` (6 команд) та `FakeTeamStatsProvider` (3 тестові команди, режим `fail=True`).
+- `app/schemas.py` — Pydantic DTO (`TeamInfo`, `PredictRequest`, `PredictResponse`, `DependencyHealthResponse`) та мапери.
+- `app/api/` — `dependencies.py` (FastAPI `Depends`), `error_handlers.py` (переклад доменних помилок у HTTP `400`/`404`/`503`) та `routes/prediction.py`.
 
-База даних історії лежить **на телефоні**, backend про неї нічого не знає й не змінювався в ЛР4.
+## Правило напрямку залежностей
 
-## Компоненти
+`app/api` → `app/services` → `app/domain` ← `app/infrastructure`.
+Модуль `app/domain` не містить імпортів з FastAPI, Pydantic або сусідніх шарів.
 
-### Mobile (`mobile/app/src/main/java/com/example/helloworld/`)
+## Компоненти Mobile (`mobile/`)
 
-| Файл | Відповідальність |
-|---|---|
-| `MainActivity.kt` | Перемикання екранів (`AppRoot`, `Screen`: `Predict`, `History`, `Details`), екран прогнозу `PredictionScreen`, випадні списки `TeamDropdown`, картка `ResultCard` (відсотки, пояснення, блок «Чому такий прогноз?»), стани `UiState` (`Idle`, `Loading`, `Success`, `Error`). Після успішної відповіді викликає `HistoryStore.add()` |
-| `HistoryScreens.kt` | `HistoryScreen` (список, порожній стан, видалення одного запису, очищення з підтвердженням) і `DetailsScreen` (збережений результат, видалення). Читають дані лише з `HistoryStore` |
-| `HistoryStore.kt` | Локальна база на `SQLiteOpenHelper`: `add`, `getAll`, `getResult`, `delete`, `clear`. Усі операції виконуються у `Dispatchers.IO`. Відокремлена від інтерфейсу |
-| `HistoryModels.kt` | `HistoryItem` (короткий запис для списку), короткі описи (`inputSummary`, `resultSummary`), перетворення `PredictResponse` у JSON і назад, формат дати |
-| `ApiClient.kt` | Об'єкт з двома функціями: `getTeams()` і `predictMatch()`. Використовує `HttpURLConnection`, таймаути 5 с, виконується у `Dispatchers.IO`. JSON розбирається вручну через `org.json`. Не змінювався в ЛР4 |
-| `ApiModels.kt` | Класи `PredictRequest`, `PredictResponse` (15 полів), `TeamInfo`. Не змінювався в ЛР4 |
-
-Адреса backend: константа `BASE_URL = "http://127.0.0.1:8000"` у `ApiClient.kt`.
-У `AndroidManifest.xml`: дозвіл `INTERNET` і `usesCleartextTraffic="true"`. Для історії нових дозволів не потрібно.
-
-### Backend (`backend/main.py`)
-
-| Елемент | Призначення |
-|---|---|
-| `TEAMS_DB` | Словник із 6 командами: `win_rate`, `rating` |
-| `TeamInfo`, `PredictRequest`, `PredictResponse` | Pydantic-моделі |
-| `GET /health` | Перевірка доступності |
-| `GET /teams` | Список команд зі статистикою |
-| `POST /predict` | Валідація команд, виклик `calculate_prediction()`, відповідь |
-| `calculate_prediction()` | Чиста функція: формула, ймовірності, пояснення, 15 полів відповіді |
-| CORS | `allow_origins=["*"]` (лише для розробки) |
-
-## Потік даних основного сценарію
-
-1. `PredictionScreen` при відкритті викликає `ApiClient.getTeams()` → `GET /teams` → отримує 6 команд.
-2. Користувач обирає дві команди. Застосунок перевіряє лише те, що обрано обидві.
-3. Кнопка ставить `UiState.Loading` і викликає `ApiClient.predictMatch(a, b)` → `POST /predict` з JSON `{"team_a_name": ..., "team_b_name": ...}`.
-4. `predict()` перевіряє: однакові команди → 400, команда не знайдена → 404.
-5. `predict()` викликає `calculate_prediction()`, яка рахує бали, ймовірності та розбивку розрахунку (див. `ai-component.md`).
-6. Backend повертає `PredictResponse` у JSON.
-7. `ApiClient` розбирає JSON у `PredictResponse`. Якщо розбір пройшов без винятку, виконується крок 8.
-8. **Збереження в історію (ЛР4):** `HistoryStore.add(result)` перевіряє відповідь (`isSavable`: непорожні назви, ймовірності в межах 0..1) і додає рядок у таблицю `history`. Збій бази не ховає результат: прогноз усе одно показується.
-9. Екран ставить `UiState.Success` і малює `ResultCard`.
-
-При помилці на кроках 3–7 (мережа, 400, 404, некоректний JSON) `predictMatch` кидає виняток, виконання йде в `catch`, екран ставить `UiState.Error`, а `HistoryStore.add` **не викликається**. Помилка в історію не потрапляє.
-
-## Потік даних історії
-
-1. Кнопка «Історія прогнозів» перемикає `AppRoot` на `Screen.History`.
-2. `HistoryScreen` у фоновому потоці викликає `HistoryStore.getAll()` і показує записи, новіші зверху (`ORDER BY created_at DESC, id DESC`). Порожня таблиця дає повідомлення «Історія порожня…».
-3. Натискання на запис відкриває `Screen.Details(item)`. `DetailsScreen` викликає `HistoryStore.getResult(id)`, розбирає збережений JSON і показує його тією самою `ResultCard`. Запит до backend **не виконується**, збережений результат не перераховується.
-4. «Видалити» (у списку чи в деталях) і «Очистити» показують діалог підтвердження; після підтвердження викликаються `delete(id)` або `clear()`, список перечитується.
-5. Історія працює без мережі, бо читає лише локальну базу.
-
-## Структура запису
-
-Таблиця `history` у базі `cyberscope_history.db`:
-
-| Поле | Тип | Приклад | Призначення |
-|---|---|---|---|
-| `id` | INTEGER, автоінкремент | 42 | Локальний ідентифікатор |
-| `created_at` | INTEGER | 1793353071321 | Час отримання результату (мс); у інтерфейсі `2026-10-30 10:17` |
-| `input_summary` | TEXT | Natus Vincere vs FaZe Clan | Короткий опис вхідних даних для списку |
-| `result_summary` | TEXT | 53% / 47% | Результат для списку |
-| `status` | TEXT | готово | Стан; у базовому рівні лише «готово» |
-| `details_json` | TEXT | `{"team_a_name": ...}` | Повна відповідь backend (15 полів) для екрана деталей |
-
-Повна відповідь зберігається одним JSON-рядком, тому розширення API не вимагає зміни схеми бази.
-
-Файл бази: `/data/data/com.example.helloworld/databases/cyberscope_history.db`. Це приватна внутрішня пам'ять застосунку, інші застосунки до неї доступу не мають. Дані лишаються після перезапуску, бо це файл на диску, а не змінна в пам'яті. Видаляються кнопками «Видалити» і «Очистити», а також разом із застосунком або очищенням його даних.
-
-## Що не зберігається
-
-| Дані | Чому |
-|---|---|
-| Помилки backend, мережі та валідації (400, 404, 422, timeout) | Не є результатом AI. Запис «готово» мав би вводити в оману |
-| Тексти винятків і технічні повідомлення | Методичка забороняє зберігати повні технічні помилки |
-| Неповні або некоректні відповіді | Не проходять `isSavable` або розбір JSON, запис не створюється |
-| Адреса backend, ключі, токени | Не потрібні для історії; в застосунку їх немає |
-| Список команд (`/teams`) | Завантажується з backend щоразу, до історії не належить |
-
-Збережений результат є історичним: новий запуск прогнозу створює **новий** запис і не підміняє старий.
-
-## Відмінності від архітектури ЛР1
-
-| ЛР1 (концепція) | Факт |
-|---|---|
-| База даних команд, гравців, матчів | Словник `TEAMS_DB` у коді |
-| Зовнішні джерела даних, що оновлюють БД | Немає, дані вручну |
-| Окремий AI-модуль, який читає історичні дані з БД | Формула у функції `calculate_prediction()` в `main.py`, окремого модуля немає |
-| Backend з кількома сервісами | Один файл `main.py` |
-| Адреса `10.0.2.2` для емулятора | `127.0.0.1` + `adb reverse` (`10.0.2.2` давала timeout) |
-| Історії на пристрої немає | Локальна SQLite-історія прогнозів (ЛР4) |
+- `MainActivity.kt` — екрани (`Predict`, `History`, `Details`), стани `UiState`, картка результату `ResultCard`.
+- `ApiClient.kt`, `ApiModels.kt` — запити `GET /teams` і `POST /predict` через `HttpURLConnection` (`http://127.0.0.1:8000` + `adb reverse`).
+- `HistoryStore.kt`, `HistoryModels.kt`, `HistoryScreens.kt` — локальна база SQLite (`cyberscope_history.db`) для збереження успішних прогнозів.

@@ -1,9 +1,15 @@
-"""Pydantic-схеми API (контракт з ЛР3, 15 полів) і перетворення з доменних моделей."""
+﻿"""Pydantic-схеми API (контракт з ЛР3, 15 полів) і перетворення з доменних моделей."""
 from pydantic import BaseModel, Field
 
 from app.domain.models import Prediction, TeamStats
 
 DISCLAIMER = "Статистика команд демонстраційна."
+
+
+class DependencyHealthResponse(BaseModel):
+    status: str
+    provider: str
+    teams_count: int
 
 
 class TeamInfo(BaseModel):

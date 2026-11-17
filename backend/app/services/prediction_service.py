@@ -1,4 +1,4 @@
-"""Прикладна логіка прогнозу. Не імпортує FastAPI, Pydantic чи конкретне джерело даних."""
+﻿"""Прикладна логіка прогнозу. Не імпортує FastAPI, Pydantic чи конкретне джерело даних."""
 from app.domain.errors import SameTeamsError, TeamNotFoundError
 from app.domain.interfaces import TeamStatsProvider
 from app.domain.models import (
@@ -20,6 +20,10 @@ class PredictionService:
 
     def list_teams(self) -> list[TeamStats]:
         return self._provider.list_teams()
+
+    def check_dependencies(self) -> int:
+        """Перевіряє доступність джерела статистики команд і повертає кількість записів."""
+        return len(self._provider.list_teams())
 
     def predict(self, team_a_name: str, team_b_name: str) -> Prediction:
         # Порядок перевірок збережено з ЛР2: спочатку однакові, потім A, потім B

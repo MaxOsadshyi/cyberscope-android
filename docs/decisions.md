@@ -1,7 +1,36 @@
-# Технічні рішення
+﻿# Технічні рішення
 
 Формат: рішення, причина, наслідки. Нові рішення додаються вгору списку.
 
+## D-20. Контрольне розширення `GET /health/dependencies` крізь усі шари (ЛР5)
+
+- **Рішення:** додано `GET /health/dependencies`, який через `Depends` викликає `PredictionService.check_dependencies()`, звертається до `TeamStatsProvider.list_teams()` і повертає `200 OK` або `503 Service Unavailable` через `error_handlers.py`.
+- **Причина:** перевірити проходження запиту крізь усі шари архітектури (`router → service → provider → error_handlers`).
+- **Наслідки:** додано `DependencyHealthResponse` та 4 автотести у `tests/test_health_dependencies.py`.
+
+## D-19. Перевірка HTTP-шару через `TestClient` + `dependency_overrides` і golden-тести (ЛР5)
+
+- **Рішення:** зафіксовано регресійний еталон (`tests/test_golden_regression.py`), а HTTP-шар перевірено через `fastapi.testclient.TestClient` і `app.dependency_overrides` (`httpx` у `requirements-dev.txt`).
+- **Причина:** у ЛР3 тести викликали функції напряму без HTTP-серіалізації та обробників помилок.
+- **Наслідки:** `requirements.txt` залишився мінімальним, 19 автотестів покривають домен, сервіс і HTTP-відповіді `200 / 400 / 404 / 503`.
+
+## D-18. Централізована конфігурація через змінні середовища (ЛР5)
+
+- **Рішення:** створено `app/core/config.py` (`Settings`, `get_settings()`), де `STATS_PROVIDER`, `WEIGHT_WIN_RATE`, `WEIGHT_RATING` і `CORS_ALLOW_ORIGINS` зчитуються зі змінних середовища.
+- **Причина:** винести налаштування з коду маршрутів та сервісу без втрати нульової конфігурації за замовчуванням.
+- **Наслідки:** провайдер, ваги моделі та CORS змінюються без редагування коду.
+
+## D-17. Централізоване перетворення доменних помилок на HTTP-статуси (ЛР5)
+
+- **Рішення:** `PredictionService` кидає доменні винятки (`SameTeamsError`, `TeamNotFoundError`, `StatsUnavailableError`), а `app/api/error_handlers.py` перетворює їх на JSON-відповіді `400`, `404`, `503`.
+- **Причина:** відокремити бізнес-логіку від `fastapi.HTTPException` та уніфікувати формат помилок.
+- **Наслідки:** `PredictionService` тестується без FastAPI.
+
+## D-16. Шарувата архітектура backend і порт `TeamStatsProvider` (ЛР5)
+
+- **Рішення:** монолітний `backend/main.py` розділено на `app/domain`, `app/services`, `app/infrastructure/providers` (`InMemoryTeamStatsProvider`, `FakeTeamStatsProvider`), `app/api` та `app/schemas.py`. Кореневий `main.py` став тонкою точкою входу.
+- **Причина:** ізолювати джерело статистики за контрактом `TeamStatsProvider` для підключення реальних API без зміни бізнес-логіки.
+- **Наслідки:** запуск `uvicorn main:app --reload` працює як раніше; підміна провайдера виконується через `STATS_PROVIDER=fake` або `Depends`.
 ## D-15. Екрани перемикаються станом, без бібліотеки навігації (ЛР4)
 
 - **Рішення:** `AppRoot` тримає поточний `Screen` (`Predict`, `History`, `Details`). Системна кнопка «Назад» обробляється через `BackHandler` на екранах історії та деталей. Вибір команд на головному екрані зберігається `rememberSaveable`.
@@ -89,3 +118,4 @@
 
 - **Причина:** рекомендований методичкою стек. Pydantic дає валідацію, FastAPI дає автоматичний Swagger UI.
 - **Наслідки:** запуск через Uvicorn, залежності в `backend/requirements.txt` (`fastapi`, `uvicorn`, `pydantic`).
+

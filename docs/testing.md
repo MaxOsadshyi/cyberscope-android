@@ -1,35 +1,21 @@
-# Тестування
+﻿# Тестування
 
 ## Поточний стан
-
-- **Backend:** є автоматичні unit-тести на стандартному `unittest` (`backend/tests/test_prediction.py`), без сторонніх залежностей. У ЛР4 backend не змінювався, тести лишились як були.
-- **Mobile:** власних автотестів немає. У `mobile/app/src/test` і `mobile/app/src/androidTest` лежать лише шаблонні Example-тести, створені Android Studio, вони нічого не перевіряють у застосунку. Локальну історію перевірено вручну за таблицями нижче.
+- **Backend:** 19 автотестів на `unittest` із `TestClient` та `dependency_overrides` (4 модулі у `backend/tests/`).
+- **Mobile:** власних автотестів немає, сценарії перевірено вручну.
 
 ## Запуск backend-тестів
-
-З папки `backend`, з активованим `venv`:
-
-```
+```powershell
 cd backend
 venv\Scripts\activate
+pip install -r requirements-dev.txt
 python -m unittest discover -s tests -v
 ```
-
-Очікуваний результат: чотири тести, у кінці `OK`.
-
-### Що покривають тести
-
-Тести викликають функції `calculate_prediction()` і `predict()` напряму (без HTTP-шару):
-
-| Тест | Що перевіряє |
-|---|---|
-| `test_natus_vincere_vs_faze_clan_returns_expected_details` | Для Natus Vincere / FaZe Clan відповідь має рівно 15 очікуваних полів; значення внесків, балів і ймовірностей (0.53 / 0.47) збігаються з розрахунком; сума ймовірностей дорівнює 1; пояснення містить позначку про демонстраційну статистику |
-| `test_equal_rounded_probabilities_have_neutral_explanation` | Для рівних округлених ймовірностей (синтетичні дані, `TEAMS_DB` не змінюється) пояснення нейтральне, без вибору фаворита (жодна команда не названа), і містить позначку про демонстраційну статистику |
-| `test_same_teams_return_400` | Однакові команди дають помилку 400 |
-| `test_unknown_team_returns_404` | Невідома команда дає помилку 404 |
-
-HTTP-відповідь у цілому (JSON з 15 полями) перевірялась вручну через Swagger UI (`/docs`).
-
+Очікуваний результат: 19 тестів, у кінці `OK`.
+- `test_golden_regression.py` (3): регресійний еталон ЛР3.
+- `test_prediction_service.py` (6): ізольована бізнес-логіка `PredictionService`.
+- `test_prediction.py` (6): HTTP-шар (15 полів, `dependency_overrides`, `STATS_PROVIDER=fake`, коди 400/404/503).
+- `test_health_dependencies.py` (4): `GET /health/dependencies` (200 та 503).
 ## Запуск системи для ручної перевірки
 
 ```
@@ -93,3 +79,4 @@ Backend-частину регресії покривають unit-тести, mo
 | `ModuleNotFoundError: fastapi` при запуску тестів | Не активовано `venv` | `venv\Scripts\activate` у папці `backend` |
 | Чорний екран емулятора | Дисплей заснув або збій графіки | Кнопка живлення в панелі емулятора, при потребі Cold Boot |
 | Історія зникла після встановлення застосунку | Перевстановлення або очищення даних видаляє базу | Для перевірки перезапуску закривати застосунок, а не видаляти його |
+
