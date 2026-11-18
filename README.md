@@ -1,74 +1,51 @@
 ﻿# CyberScope: CS2 Match Predictor
 
-Мобільний додаток для фанатів кіберспорту (CS2). Користувач обирає дві команди, backend розраховує ймовірність перемоги, а застосунок показує результат, пояснення розрахунку та зберігає успішні прогнози в локальну історію на пристрої.
+Мобільний додаток для фанатів кіберспорту (CS2). Користувач обирає дві команди, опціонально карту матчу та тактичний AI-розбір (Gemini), backend розраховує ймовірність перемоги та формує аналітичний коментар, а застосунок зберігає успішні прогнози в локальну історію на пристрої.
 
 - **ЛР2:** MVP «mobile → backend → результат».
 - **ЛР3:** Knowledge Base (`docs/`), контрольована розробка з coding agent, блок «Чому такий прогноз?».
 - **ЛР4:** локальна історія прогнозів (SQLite), перегляд, деталі, видалення, очищення.
-- **ЛР5:** шарувата архітектура backend (`domain` → `services` → `infrastructure` → `api`), заміна джерела статистики через `TeamStatsProvider`, конфігурація через змінні середовища, 19 автотестів і `GET /health/dependencies`.
+- **ЛР5:** шарувата архітектура backend (`domain` → `services` → `infrastructure` → `api`), контракт `TeamStatsProvider`, змінні середовища, 19 автотестів і `GET /health/dependencies`.
+- **ЛР6:** вибір карти CS2 (`GET /maps`, мап-пул з 7 карт із власним вінрейтом команд), інтеграція зовнішнього LLM API (**Google Gemini**, модель `gemini-3.5-flash-lite`) для тактичного аналізу матчу з відмовостійким `fallback`-режимом, 25 автотестів.
+
+## Ідея
+
+На відміну від HLTV, який надає лише сирі дані, додаток пропонує аналітику:
+прогноз ймовірності перемоги команди на основі загальної або мап-специфічної статистики, прозоре математичне пояснення та стислий тактичний розбір від Gemini на основі порахованих показників.
+
+Повна концепція (ЛР1): розклад турнірів, профілі команд і гравців, історія матчів, пошук та фільтрація.
+Реалізовано прогнозування матчу (загальне та по картах), AI-аналіз Gemini та локальну історію прогнозів.
+
+## Архітектура
+
+Android (Kotlin, Jetpack Compose) → HTTP/JSON → FastAPI backend (`PredictionService` + `GeminiMatchAnalyst` через `google-genai`) → відповідь у застосунок.
+Успішна відповідь (включно з обраною картою та AI-розбором) зберігається в локальну базу SQLite на телефоні.
+
+Детальний опис: [`docs/architecture.md`](docs/architecture.md).
 
 ## Структура репозиторію
 
-- `mobile/`: Android Studio проєкт (Kotlin, Jetpack Compose, SQLite)
-- `backend/`: FastAPI сервіс (`main.py`, `app/`, `requirements.txt`, `requirements-dev.txt`, `tests/`)
+- `mobile/`: Android Studio проєкт (Kotlin, Jetpack Compose)
+- `backend/`: FastAPI сервіс (`app/`, `main.py`, `requirements.txt`, `tests/`)
 - `docs/`: Knowledge Base проєкту
 - `docs/screenshots/`: скріншоти
+
+## Вимоги
+
+- Python 3.10+
+- Android Studio з емулятором (або телефон)
+- Git
+- Безкоштовний API-ключ Google AI Studio (`GEMINI_API_KEY`) для генерації AI-аналізу (без ключа сервер працює у базовому режимі з безпечним `fallback`)
 
 ## Запуск backend
 
 ```powershell
 cd backend
 python -m venv venv
-venv\Scripts\activate
+.\venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn main:app --reload
-```
 
-Запуск із альтернативним постачальником статистики (`FakeTeamStatsProvider`):
+# Задати ключ Gemini API у поточній сесії (ніколи не комітити в репозиторій!)
+$env:GEMINI_API_KEY = "ваш_ключ_Gemini"
 
-```powershell
-$env:STATS_PROVIDER = "fake"
-uvicorn main:app --reload
-```
-
-Swagger UI: http://127.0.0.1:8000/docs
-
-## Запуск mobile
-
-1. Відкрити папку `mobile/` в Android Studio, дочекатись Gradle sync.
-2. Запустити емулятор і прокинути порт: `adb reverse tcp:8000 tcp:8000`
-3. Натиснути Run ▶. Адреса backend у застосунку: `http://127.0.0.1:8000` (`ApiClient.kt`).
-
-## Тести
-
-```powershell
-cd backend
-venv\Scripts\activate
-pip install -r requirements-dev.txt
-python -m unittest discover -s tests -v
-```
-
-Очікуваний результат: 19 тестів, у кінці `OK`.
-
-## API
-
-| Endpoint | Метод | Призначення |
-|---|---|---|
-| `/health` | GET | Перевірка доступності сервісу |
-| `/health/dependencies` | GET | Перевірка доступності постачальника статистики (`200` або `503`) |
-| `/teams` | GET | Список команд зі статистикою |
-| `/predict` | POST | Прогноз результату матчу |
-
-Повний контракт: [`docs/api-contract.md`](docs/api-contract.md).
-
-## Knowledge Base
-
-- [`ai-instructions.md`](docs/ai-instructions.md) — правила роботи coding agent
-- [`project-overview.md`](docs/project-overview.md) — проблема, користувач, межі MVP
-- [`requirements.md`](docs/requirements.md) — вимоги та їхній статус
-- [`architecture.md`](docs/architecture.md) — компоненти та потік даних
-- [`api-contract.md`](docs/api-contract.md) — endpoints, моделі, помилки
-- [`ai-component.md`](docs/ai-component.md) — алгоритм прогнозу
-- [`testing.md`](docs/testing.md) — тести та ручні сценарії
-- [`known-limitations.md`](docs/known-limitations.md) — відомі обмеження
-- [`decisions.md`](docs/decisions.md) — технічні рішення
+.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
