@@ -1,4 +1,4 @@
-package com.example.helloworld
+﻿package com.example.helloworld
 
 import org.json.JSONException
 import org.json.JSONObject
@@ -19,8 +19,19 @@ data class HistoryItem(
 fun formatTimestamp(millis: Long): String =
     SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(millis))
 
-/** Короткий опис вхідних даних для списку, наприклад «Natus Vincere vs FaZe Clan». */
-fun PredictResponse.inputSummary(): String = "$team_a_name vs $team_b_name"
+/** Короткий опис вхідних даних для списку, наприклад «Natus Vincere vs FaZe Clan · Mirage · AI». */
+fun PredictResponse.inputSummary(): String {
+    val parts = mutableListOf("$team_a_name vs $team_b_name")
+    if (!map_name.isNullOrBlank()) {
+        parts.add(map_name)
+    }
+    if (ai_status == "generated") {
+        parts.add("AI")
+    } else if (ai_status == "fallback") {
+        parts.add("AI (fallback)")
+    }
+    return parts.joinToString(" · ")
+}
 
 /** Короткий опис результату для списку, наприклад «53% / 47%». */
 fun PredictResponse.resultSummary(): String =
@@ -43,6 +54,10 @@ fun PredictResponse.toJsonString(): String = JSONObject().apply {
     put("team_b_win_rate_contribution", team_b_win_rate_contribution)
     put("team_b_rating_contribution", team_b_rating_contribution)
     put("team_b_score", team_b_score)
+    if (map_name != null) put("map_name", map_name)
+    if (ai_status != null) put("ai_status", ai_status)
+    if (ai_analysis != null) put("ai_analysis", ai_analysis)
+    if (ai_model != null) put("ai_model", ai_model)
 }.toString()
 
 /** Повертає null, якщо збережений рядок пошкоджений або неповний. */
@@ -63,7 +78,11 @@ fun predictResponseFromJson(text: String): PredictResponse? = try {
         team_b_rating = json.getDouble("team_b_rating"),
         team_b_win_rate_contribution = json.getDouble("team_b_win_rate_contribution"),
         team_b_rating_contribution = json.getDouble("team_b_rating_contribution"),
-        team_b_score = json.getDouble("team_b_score")
+        team_b_score = json.getDouble("team_b_score"),
+        map_name = if (json.isNull("map_name")) null else json.optString("map_name"),
+        ai_status = if (json.isNull("ai_status")) null else json.optString("ai_status"),
+        ai_analysis = if (json.isNull("ai_analysis")) null else json.optString("ai_analysis"),
+        ai_model = if (json.isNull("ai_model")) null else json.optString("ai_model")
     )
 } catch (e: JSONException) {
     null

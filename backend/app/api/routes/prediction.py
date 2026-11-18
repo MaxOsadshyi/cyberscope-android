@@ -1,4 +1,5 @@
 ﻿"""Тонкий HTTP router: приймає запит, викликає сервіс і повертає DTO."""
+from typing import Any
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_prediction_service
@@ -41,10 +42,22 @@ def get_teams(
     return [to_team_info(team) for team in service.list_teams()]
 
 
-@router.post("/predict", response_model=PredictResponse)
+@router.get("/maps", response_model=list[str])
+def get_maps(
+    service: PredictionService = Depends(get_prediction_service),
+) -> list[str]:
+    return service.list_maps()
+
+
+@router.post("/predict", response_model=PredictResponse, response_model_exclude_none=True)
 def predict(
     request: PredictRequest,
     service: PredictionService = Depends(get_prediction_service),
-) -> PredictResponse:
-    prediction = service.predict(request.team_a_name, request.team_b_name)
-    return to_predict_response(prediction)
+) -> dict[str, Any]:
+    prediction = service.predict(
+        request.team_a_name,
+        request.team_b_name,
+        map_name=request.map_name,
+    )
+    ai_result = service.analyze_with_ai(prediction, use_ai=request.use_ai)
+    return to_predict_response(prediction, ai_result=ai_result).model_dump()

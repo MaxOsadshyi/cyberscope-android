@@ -7,12 +7,20 @@ from app.domain.errors import (
     SameTeamsError,
     StatsUnavailableError,
     TeamNotFoundError,
+    UnknownMapError,
 )
 
 
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(SameTeamsError)
     async def handle_same_teams(_: Request, exc: SameTeamsError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(UnknownMapError)
+    async def handle_unknown_map(_: Request, exc: UnknownMapError) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": str(exc)},

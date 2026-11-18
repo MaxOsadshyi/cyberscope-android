@@ -1,4 +1,4 @@
-package com.example.helloworld
+﻿package com.example.helloworld
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -198,6 +198,7 @@ fun DetailsScreen(
     var result by remember { mutableStateOf<PredictResponse?>(null) }
     var loading by remember { mutableStateOf(true) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val detailsScrollState = rememberScrollState()
 
     BackHandler(onBack = onBack)
 
@@ -213,7 +214,8 @@ fun DetailsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScrollbar(detailsScrollState)
+            .verticalScroll(detailsScrollState)
             .padding(16.dp)
     ) {
         TextButton(onClick = onBack) { Text("← Назад") }
@@ -268,3 +270,4 @@ fun DetailsScreen(
         )
     }
 }
+

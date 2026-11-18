@@ -1,9 +1,11 @@
-package com.example.helloworld
+﻿package com.example.helloworld
 
 
 data class PredictRequest(
     val team_a_name: String,
-    val team_b_name: String
+    val team_b_name: String,
+    val map_name: String? = null,
+    val use_ai: Boolean = false
 )
 
 data class PredictResponse(
@@ -21,7 +23,11 @@ data class PredictResponse(
     val team_b_rating: Double,
     val team_b_win_rate_contribution: Double,
     val team_b_rating_contribution: Double,
-    val team_b_score: Double
+    val team_b_score: Double,
+    val map_name: String? = null,
+    val ai_status: String? = null,
+    val ai_analysis: String? = null,
+    val ai_model: String? = null
 )
 
 data class TeamInfo(

@@ -1,7 +1,8 @@
-package com.example.helloworld
+﻿package com.example.helloworld
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.OutputStreamWriter
@@ -9,7 +10,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object ApiClient {
-
 
     private const val BASE_URL = "http://127.0.0.1:8000"
 
@@ -26,7 +26,7 @@ object ApiClient {
         }
 
         val response = connection.inputStream.bufferedReader().use(BufferedReader::readText)
-        val jsonArray = org.json.JSONArray(response)
+        val jsonArray = JSONArray(response)
 
         val teams = mutableListOf<TeamInfo>()
         for (i in 0 until jsonArray.length()) {
@@ -42,18 +42,48 @@ object ApiClient {
         teams
     }
 
-    suspend fun predictMatch(teamA: String, teamB: String): PredictResponse = withContext(Dispatchers.IO) {
+    suspend fun getMaps(): List<String> = withContext(Dispatchers.IO) {
+        val url = URL("$BASE_URL/maps")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+
+        val responseCode = connection.responseCode
+        if (responseCode != 200) {
+            throw Exception("Помилка завантаження карт: $responseCode")
+        }
+
+        val response = connection.inputStream.bufferedReader().use(BufferedReader::readText)
+        val jsonArray = JSONArray(response)
+        val maps = mutableListOf<String>()
+        for (i in 0 until jsonArray.length()) {
+            maps.add(jsonArray.getString(i))
+        }
+        maps
+    }
+
+    suspend fun predictMatch(
+        teamA: String,
+        teamB: String,
+        mapName: String? = null,
+        useAi: Boolean = false
+    ): PredictResponse = withContext(Dispatchers.IO) {
         val url = URL("$BASE_URL/predict")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
         connection.connectTimeout = 5000
-        connection.readTimeout = 5000
+        connection.readTimeout = 30000
         connection.setRequestProperty("Content-Type", "application/json")
         connection.doOutput = true
 
         val requestBody = JSONObject().apply {
             put("team_a_name", teamA)
             put("team_b_name", teamB)
+            if (mapName != null) {
+                put("map_name", mapName)
+            }
+            put("use_ai", useAi)
         }
 
         OutputStreamWriter(connection.outputStream).use { writer ->
@@ -81,7 +111,11 @@ object ApiClient {
                 team_b_rating = json.getDouble("team_b_rating"),
                 team_b_win_rate_contribution = json.getDouble("team_b_win_rate_contribution"),
                 team_b_rating_contribution = json.getDouble("team_b_rating_contribution"),
-                team_b_score = json.getDouble("team_b_score")
+                team_b_score = json.getDouble("team_b_score"),
+                map_name = if (json.isNull("map_name")) null else json.optString("map_name"),
+                ai_status = if (json.isNull("ai_status")) null else json.optString("ai_status"),
+                ai_analysis = if (json.isNull("ai_analysis")) null else json.optString("ai_analysis"),
+                ai_model = if (json.isNull("ai_model")) null else json.optString("ai_model")
             )
         } else {
             val errorStream = connection.errorStream?.bufferedReader()?.use(BufferedReader::readText)

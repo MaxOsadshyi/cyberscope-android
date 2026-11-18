@@ -1,4 +1,4 @@
-"""Помилки прикладного рівня. Не знають про HTTP: код відповіді обирає API-шар."""
+﻿"""Помилки прикладного рівня. Не знають про HTTP: код відповіді обирає API-шар."""
 
 
 class DomainError(Exception):
@@ -14,6 +14,12 @@ class TeamNotFoundError(DomainError):
     def __init__(self, team_name: str) -> None:
         self.team_name = team_name
         super().__init__(f"Команду '{team_name}' не знайдено")
+
+
+class UnknownMapError(DomainError):
+    def __init__(self, map_name: str) -> None:
+        self.map_name = map_name
+        super().__init__(f"Невідома карта '{map_name}'")
 
 
 class StatsUnavailableError(DomainError):
