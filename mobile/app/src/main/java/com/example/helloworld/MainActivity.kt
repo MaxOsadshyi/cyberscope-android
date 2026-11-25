@@ -69,6 +69,7 @@ fun Modifier.verticalScrollbar(
 sealed class Screen {
     object Predict : Screen()
     object History : Screen()
+    object Ranking : Screen()
     data class Details(val item: HistoryItem) : Screen()
 }
 
@@ -79,12 +80,17 @@ fun AppRoot(modifier: Modifier = Modifier) {
     when (val current = screen) {
         is Screen.Predict -> PredictionScreen(
             modifier = modifier,
-            onOpenHistory = { screen = Screen.History }
+            onOpenHistory = { screen = Screen.History },
+            onOpenRanking = { screen = Screen.Ranking }
         )
         is Screen.History -> HistoryScreen(
             modifier = modifier,
             onBack = { screen = Screen.Predict },
             onOpen = { item -> screen = Screen.Details(item) }
+        )
+        is Screen.Ranking -> RankingScreen(
+            modifier = modifier,
+            onBack = { screen = Screen.Predict }
         )
         is Screen.Details -> DetailsScreen(
             modifier = modifier,
@@ -104,7 +110,8 @@ sealed class UiState {
 @Composable
 fun PredictionScreen(
     modifier: Modifier = Modifier,
-    onOpenHistory: () -> Unit = {}
+    onOpenHistory: () -> Unit = {},
+    onOpenRanking: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -212,6 +219,12 @@ fun PredictionScreen(
 
         OutlinedButton(onClick = onOpenHistory) {
             Text("Історія прогнозів")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(onClick = onOpenRanking) {
+            Text("Рейтинг команд")
         }
 
         Spacer(modifier = Modifier.height(20.dp))

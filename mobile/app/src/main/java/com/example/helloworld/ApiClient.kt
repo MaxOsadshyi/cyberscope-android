@@ -26,20 +26,53 @@ object ApiClient {
         }
 
         val response = connection.inputStream.bufferedReader().use(BufferedReader::readText)
-        val jsonArray = JSONArray(response)
+        parseTeamsArray(JSONArray(response))
+    }
 
+    suspend fun getTeamsRanking(): List<TeamInfo> = withContext(Dispatchers.IO) {
+        val url = URL("$BASE_URL/teams/ranking")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+
+        val responseCode = connection.responseCode
+        if (responseCode != 200) {
+            throw Exception("Помилка завантаження рейтингу: $responseCode")
+        }
+
+        val response = connection.inputStream.bufferedReader().use(BufferedReader::readText)
+        parseTeamsArray(JSONArray(response))
+    }
+
+    private fun parseTeamsArray(jsonArray: JSONArray): List<TeamInfo> {
         val teams = mutableListOf<TeamInfo>()
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
+            val rosterArray = obj.optJSONArray("roster")
+            val roster = mutableListOf<PlayerInfo>()
+            if (rosterArray != null) {
+                for (j in 0 until rosterArray.length()) {
+                    val pObj = rosterArray.getJSONObject(j)
+                    roster.add(
+                        PlayerInfo(
+                            nickname = pObj.getString("nickname"),
+                            rating = pObj.getDouble("rating")
+                        )
+                    )
+                }
+            }
             teams.add(
                 TeamInfo(
                     name = obj.getString("name"),
                     win_rate = obj.getDouble("win_rate"),
-                    rating = obj.getDouble("rating")
+                    rating = obj.getDouble("rating"),
+                    points = obj.optInt("points", 0),
+                    roster = roster
                 )
             )
         }
-        teams
+        return teams
     }
 
     suspend fun getMaps(): List<String> = withContext(Dispatchers.IO) {

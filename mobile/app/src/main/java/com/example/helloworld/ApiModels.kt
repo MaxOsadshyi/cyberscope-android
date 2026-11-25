@@ -30,8 +30,15 @@ data class PredictResponse(
     val ai_model: String? = null
 )
 
+data class PlayerInfo(
+    val nickname: String,
+    val rating: Double
+)
+
 data class TeamInfo(
     val name: String,
     val win_rate: Double,
-    val rating: Double
+    val rating: Double,
+    val points: Int = 0,
+    val roster: List<PlayerInfo> = emptyList()
 )

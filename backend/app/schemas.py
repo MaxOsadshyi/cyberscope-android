@@ -1,4 +1,4 @@
-﻿"""Pydantic-схеми API (зворотна сумісність з ЛР3 + контекст карти та AI-аналіз ЛР6)."""
+﻿"""Pydantic-схеми API (зворотна сумісність з ЛР3 + контекст карти та AI-аналіз ЛР6 + рейтинг команд)."""
 from typing import Any
 from pydantic import BaseModel, Field
 
@@ -14,10 +14,23 @@ class DependencyHealthResponse(BaseModel):
     teams_count: int
 
 
+class PlayerInfo(BaseModel):
+    nickname: str
+    rating: float
+
+
 class TeamInfo(BaseModel):
     name: str
     win_rate: float
     rating: float
+
+
+class TeamRankingInfo(BaseModel):
+    name: str
+    win_rate: float
+    rating: float
+    points: int
+    roster: list[PlayerInfo]
 
 
 class PredictRequest(BaseModel):
@@ -58,6 +71,16 @@ class PredictResponse(BaseModel):
 
 def to_team_info(team: TeamStats) -> TeamInfo:
     return TeamInfo(name=team.name, win_rate=team.win_rate, rating=team.rating)
+
+
+def to_team_ranking_info(team: TeamStats) -> TeamRankingInfo:
+    return TeamRankingInfo(
+        name=team.name,
+        win_rate=team.win_rate,
+        rating=team.rating,
+        points=team.points,
+        roster=[PlayerInfo(nickname=p.nickname, rating=p.rating) for p in team.roster],
+    )
 
 
 def build_explanation(prediction: Prediction) -> str:
@@ -102,4 +125,3 @@ def to_predict_response(
         ai_analysis=ai.summary,
         ai_model=ai.model,
     )
-

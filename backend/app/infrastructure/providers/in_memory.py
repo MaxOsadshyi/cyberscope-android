@@ -1,7 +1,7 @@
-﻿"""Постачальник статистики з даних у пам'яті (базові команди + вінрейти по картах)."""
+﻿"""Постачальник статистики з даних у пам'яті (базові команди + вінрейти по картах + склади)."""
 from collections.abc import Iterable
 
-from app.domain.models import TeamStats
+from app.domain.models import PlayerStats, TeamStats
 
 DEMO_TEAMS = (
     TeamStats(
@@ -17,6 +17,14 @@ DEMO_TEAMS = (
             "Anubis": 0.66,
             "Train": 0.68,
         },
+        points=940,
+        roster=(
+            PlayerStats("b1t", 1.18),
+            PlayerStats("w0nderful", 1.16),
+            PlayerStats("jL", 1.15),
+            PlayerStats("iM", 1.14),
+            PlayerStats("Aleksib", 1.02),
+        ),
     ),
     TeamStats(
         "FaZe Clan",
@@ -31,6 +39,14 @@ DEMO_TEAMS = (
             "Anubis": 0.49,
             "Train": 0.54,
         },
+        points=825,
+        roster=(
+            PlayerStats("frozen", 1.16),
+            PlayerStats("EliGE", 1.13),
+            PlayerStats("broky", 1.11),
+            PlayerStats("rain", 1.03),
+            PlayerStats("karrigan", 0.91),
+        ),
     ),
     TeamStats(
         "Vitality",
@@ -45,6 +61,14 @@ DEMO_TEAMS = (
             "Anubis": 0.74,
             "Train": 0.66,
         },
+        points=985,
+        roster=(
+            PlayerStats("ZywOo", 1.32),
+            PlayerStats("ropz", 1.19),
+            PlayerStats("flameZ", 1.17),
+            PlayerStats("mezii", 1.12),
+            PlayerStats("apEX", 1.05),
+        ),
     ),
     TeamStats(
         "G2 Esports",
@@ -59,6 +83,14 @@ DEMO_TEAMS = (
             "Anubis": 0.55,
             "Train": 0.56,
         },
+        points=860,
+        roster=(
+            PlayerStats("m0NESY", 1.27),
+            PlayerStats("malbsMd", 1.14),
+            PlayerStats("HeavyGod", 1.09),
+            PlayerStats("huNter-", 1.04),
+            PlayerStats("Snax", 0.94),
+        ),
     ),
     TeamStats(
         "MOUZ",
@@ -73,6 +105,14 @@ DEMO_TEAMS = (
             "Anubis": 0.51,
             "Train": 0.53,
         },
+        points=790,
+        roster=(
+            PlayerStats("torzsi", 1.12),
+            PlayerStats("xertioN", 1.10),
+            PlayerStats("Spinx", 1.09),
+            PlayerStats("Jimpphat", 1.07),
+            PlayerStats("Brollan", 1.01),
+        ),
     ),
     TeamStats(
         "Spirit",
@@ -87,6 +127,14 @@ DEMO_TEAMS = (
             "Anubis": 0.63,
             "Train": 0.55,
         },
+        points=895,
+        roster=(
+            PlayerStats("donk", 1.34),
+            PlayerStats("sh1ro", 1.21),
+            PlayerStats("zont1x", 1.08),
+            PlayerStats("magixx", 1.02),
+            PlayerStats("chopper", 0.96),
+        ),
     ),
 )
 

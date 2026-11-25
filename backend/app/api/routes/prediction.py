@@ -1,4 +1,5 @@
 ﻿"""Тонкий HTTP router: приймає запит, викликає сервіс і повертає DTO."""
+from app.api.dependencies import get_team_stats_provider
 from typing import Any
 from fastapi import APIRouter, Depends
 
@@ -9,8 +10,10 @@ from app.schemas import (
     PredictRequest,
     PredictResponse,
     TeamInfo,
+    TeamRankingInfo,
     to_predict_response,
     to_team_info,
+    to_team_ranking_info,
 )
 from app.services.prediction_service import PredictionService
 
@@ -61,3 +64,10 @@ def predict(
     )
     ai_result = service.analyze_with_ai(prediction, use_ai=request.use_ai)
     return to_predict_response(prediction, ai_result=ai_result).model_dump()
+
+@router.get("/teams/ranking", response_model=list[TeamRankingInfo])
+def get_teams_ranking(
+    provider=Depends(get_team_stats_provider),
+) -> list[TeamRankingInfo]:
+    ranked = sorted(provider.list_teams(), key=lambda t: t.points, reverse=True)
+    return [to_team_ranking_info(team) for team in ranked]
